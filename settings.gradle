@@ -1,0 +1,3 @@
+rootProject.name = 'auto-value-extension-util-root'
+
+include ':auto-value-extension-util'
