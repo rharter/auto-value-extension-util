@@ -1,8 +1,13 @@
 package com.gabrielittner.auto.value.util;
 
+import com.google.auto.common.AnnotationMirrors;
+import com.google.auto.common.MoreElements;
+import com.google.common.base.Optional;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;
+import java.lang.annotation.Annotation;
 import java.util.List;
+import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
@@ -64,6 +69,25 @@ public final class ElementUtil {
     public static boolean typeExists(Elements elements, ClassName className) {
         String name = className.toString();
         return elements.getTypeElement(name) != null;
+    }
+
+    public static boolean hasAnnotationWithName(Element element, String simpleName) {
+        for (AnnotationMirror mirror : element.getAnnotationMirrors()) {
+            String name = mirror.getAnnotationType().asElement().getSimpleName().toString();
+            if (simpleName.equals(name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static Object getAnnotationValue(Element element, Class<? extends Annotation> clazz,
+            String key) {
+        Optional<AnnotationMirror> annotation = MoreElements.getAnnotationMirror(element, clazz);
+        if (annotation.isPresent()) {
+            return AnnotationMirrors.getAnnotationValue(annotation.get(), key).getValue();
+        }
+        return null;
     }
 
     private ElementUtil() {
