@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 
 import static javax.lang.model.element.Modifier.ABSTRACT;
@@ -37,37 +38,43 @@ public final class AutoValueUtil {
         return ClassName.get(context.packageName(), getFinalClassSimpleName(context));
     }
 
-    public static TypeSpec.Builder typeSpecBuilder(Context context, String className, String classToExtend, boolean isFinal) {
-        List<? extends TypeParameterElement> typeParameters = context.autoValueClass().getTypeParameters();
-        TypeVariableName[] typeVariables = new TypeVariableName[typeParameters.size()];
-        for (int i = 0; i < typeParameters.size(); i++) {
-            typeVariables[i] = TypeVariableName.get(typeParameters.get(i));
-        }
-
+    public static TypeSpec.Builder newTypeSpecBuilder(Context context, String className,
+            String classToExtend, boolean isFinal) {
+        TypeVariableName[] typeVariables = getTypeVariables(context.autoValueClass());
         return TypeSpec.classBuilder(className)
                 .addModifiers(isFinal ? FINAL : ABSTRACT)
                 .addTypeVariables(Arrays.asList(typeVariables))
-                .superclass(superClass(context, classToExtend, typeVariables))
-                .addMethod(generateConstructor(context.properties()));
+                .superclass(getSuperClass(context.packageName(), classToExtend, typeVariables))
+                .addMethod(newConstructor(context.properties()));
     }
 
-    private static TypeName superClass(Context context, String classToExtend, TypeVariableName[] typeVariables) {
-        ClassName superClassWithoutParameters = ClassName.get(context.packageName(), classToExtend);
+    private static TypeVariableName[] getTypeVariables(TypeElement autoValueClass) {
+        List<? extends TypeParameterElement> parameters = autoValueClass.getTypeParameters();
+        TypeVariableName[] typeVariables = new TypeVariableName[parameters.size()];
+        for (int i = 0, length = typeVariables.length; i < length; i++) {
+            typeVariables[i] = TypeVariableName.get(parameters.get(i));
+        }
+        return typeVariables;
+    }
+
+    private static TypeName getSuperClass(String packageName, String classToExtend,
+            TypeName[] typeVariables) {
+        ClassName superClassWithoutParameters = ClassName.get(packageName, classToExtend);
         if (typeVariables.length > 0) {
-            return ParameterizedTypeName.get(superClassWithoutParameters, (TypeName[]) typeVariables);
+            return ParameterizedTypeName.get(superClassWithoutParameters, typeVariables);
         } else {
             return superClassWithoutParameters;
         }
     }
 
-    private static MethodSpec generateConstructor(Map<String, ExecutableElement> properties) {
+    private static MethodSpec newConstructor(Map<String, ExecutableElement> properties) {
         List<ParameterSpec> params = Lists.newArrayList();
         for (Map.Entry<String, ExecutableElement> entry : properties.entrySet()) {
             TypeName typeName = TypeName.get(entry.getValue().getReturnType());
             params.add(ParameterSpec.builder(typeName, entry.getKey()).build());
         }
 
-        CodeBlock code = generateConstructorCall("super", properties.keySet().toArray());
+        CodeBlock code = newConstructorCall("super", properties.keySet().toArray());
 
         return MethodSpec.constructorBuilder()
                 .addParameters(params)
@@ -75,22 +82,19 @@ public final class AutoValueUtil {
                 .build();
     }
 
-    public static CodeBlock generateFinalClassConstructorCall(Context context, Object[] properties) {
+    public static CodeBlock newFinalClassConstructorCall(Context context, Object[] properties) {
         String constructorName = "new " + getFinalClassSimpleName(context);
-        return generateConstructorCall(constructorName, properties);
+        return newConstructorCall(constructorName, properties);
     }
 
-    private static CodeBlock generateConstructorCall(String constructorName, Object[] properties) {
-        StringBuilder format = new StringBuilder(constructorName)
-                .append("(");
+    private static CodeBlock newConstructorCall(String constructorName, Object[] properties) {
+        StringBuilder format = new StringBuilder(constructorName).append("(");
         for (int i = properties.length; i > 0; i--) {
             format.append("$N");
             if (i > 1) format.append(", ");
         }
         format.append(")");
-        return CodeBlock.builder()
-                .addStatement(format.toString(), properties)
-                .build();
+        return CodeBlock.builder().addStatement(format.toString(), properties).build();
     }
 
     private AutoValueUtil() {
