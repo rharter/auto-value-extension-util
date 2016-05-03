@@ -8,21 +8,9 @@ import com.squareup.javapoet.TypeSpec;
 import static com.gabrielittner.auto.value.util.AutoValueUtil.newTypeSpecBuilder;
 
 @AutoService(AutoValueExtension.class)
-public class SimpleFinalAutoValueExtension extends AutoValueExtension {
-
-    @Override public boolean applicable(Context context) {
-        return true;
-    }
+public class SimpleFinalAutoValueExtension extends SimpleAutoValueExtension {
 
     @Override public boolean mustBeFinal(Context context) {
         return true;
-    }
-
-    @Override public String generateClass(Context context, String className,
-            String classToExtend, boolean isFinal) {
-        TypeSpec subclass = newTypeSpecBuilder(context, className, classToExtend, isFinal).build();
-        return JavaFile.builder(context.packageName(), subclass)
-                .build()
-                .toString();
     }
 }

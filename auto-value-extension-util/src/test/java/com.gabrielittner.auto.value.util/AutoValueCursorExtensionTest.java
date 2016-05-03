@@ -113,18 +113,20 @@ public class AutoValueCursorExtensionTest {
                 + "\n"
                 + "import java.lang.String;"
                 + "\n"
-                + "final class AutoValue_Test extends $AutoValue_Test {\n"
-                + "  AutoValue_Test(int a, String b, boolean c) {\n"
+                + "abstract class $AutoValue_Test extends $$AutoValue_Test {\n"
+                + "  $AutoValue_Test(int a, String b, boolean c) {\n"
                 + "    super(a, b, c);\n"
                 + "  }\n"
-                + "  void test() {"
-                + "    new AutoValue_Test(a(), b(), c());"
-                + "  }"
+                + "\n"
+                + "  Test test() {\n"
+                + "    return new AutoValue_Test(a(), b(), c());\n"
+                + "  }\n"
                 + "}\n"
         );
 
         assertAbout(javaSources()).that(Collections.singletonList(source))
-                .processedWith(newProcessor(new CallingConstructorAutoValueExtension()))
+                .processedWith(newProcessor(new CallingConstructorAutoValueExtension(),
+                        new SimpleFinalAutoValueExtension()))
                 .compilesWithoutError()
                 .and()
                 .generatesSources(expected);

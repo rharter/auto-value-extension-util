@@ -74,7 +74,7 @@ public final class AutoValueUtil {
             params.add(ParameterSpec.builder(typeName, entry.getKey()).build());
         }
 
-        CodeBlock code = newConstructorCall("super", properties.keySet().toArray());
+        CodeBlock code = newConstructorCall(CodeBlock.of("super"), properties.keySet().toArray());
 
         return MethodSpec.constructorBuilder()
                 .addParameters(params)
@@ -83,18 +83,21 @@ public final class AutoValueUtil {
     }
 
     public static CodeBlock newFinalClassConstructorCall(Context context, Object[] properties) {
-        String constructorName = "new " + getFinalClassSimpleName(context);
+        CodeBlock constructorName = CodeBlock.of("new $T", getFinalClassClassName(context));
         return newConstructorCall(constructorName, properties);
     }
 
-    private static CodeBlock newConstructorCall(String constructorName, Object[] properties) {
-        StringBuilder format = new StringBuilder(constructorName).append("(");
+    private static CodeBlock newConstructorCall(CodeBlock constructorName, Object[] properties) {
+        StringBuilder params = new StringBuilder("(");
         for (int i = properties.length; i > 0; i--) {
-            format.append("$N");
-            if (i > 1) format.append(", ");
+            params.append("$N");
+            if (i > 1) params.append(", ");
         }
-        format.append(")");
-        return CodeBlock.builder().addStatement(format.toString(), properties).build();
+        params.append(")");
+        return CodeBlock.builder()
+                .add(constructorName)
+                .addStatement(params.toString(), properties)
+                .build();
     }
 
     private AutoValueUtil() {
