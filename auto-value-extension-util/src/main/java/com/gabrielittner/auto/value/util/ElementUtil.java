@@ -3,6 +3,7 @@ package com.gabrielittner.auto.value.util;
 import com.google.auto.common.AnnotationMirrors;
 import com.google.auto.common.MoreElements;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;
 import java.lang.annotation.Annotation;
@@ -97,6 +98,14 @@ public final class ElementUtil {
             }
         }
         return false;
+    }
+
+    public static ImmutableSet<String> buildAnnotations(ExecutableElement element) {
+        ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+        for (AnnotationMirror annotation : element.getAnnotationMirrors()) {
+            builder.add(annotation.getAnnotationType().asElement().getSimpleName().toString());
+        }
+        return builder.build();
     }
 
     public static Object getAnnotationValue(Element element, Class<? extends Annotation> clazz,

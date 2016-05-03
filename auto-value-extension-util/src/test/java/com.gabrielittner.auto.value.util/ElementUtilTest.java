@@ -233,6 +233,21 @@ public class ElementUtilTest {
     }
 
     @Test
+    public void buildAnnotationsTest() {
+        TypeElement element = elements.getTypeElement(AnnotationTestClass.class.getCanonicalName());
+        List<? extends Element> elements = element.getEnclosedElements();
+
+        ExecutableElement a = (ExecutableElement) getElementWithName(elements, "a");
+        assertThat(ElementUtil.buildAnnotations(a)).isEmpty();
+
+        ExecutableElement b = (ExecutableElement) getElementWithName(elements, "b");
+        assertThat(ElementUtil.buildAnnotations(b)).containsExactly("Annotation1");
+
+        ExecutableElement c = (ExecutableElement) getElementWithName(elements, "c");
+        assertThat(ElementUtil.buildAnnotations(c)).containsExactly("Annotation1", "Annotation2");
+    }
+
+    @Test
     public void annotationValueTest() {
         TypeElement element = elements.getTypeElement(AnnotationTestClass.class.getCanonicalName());
         List<? extends Element> elements = element.getEnclosedElements();
