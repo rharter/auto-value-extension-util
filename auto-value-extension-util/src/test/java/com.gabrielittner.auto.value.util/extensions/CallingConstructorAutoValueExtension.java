@@ -36,6 +36,8 @@ public class CallingConstructorAutoValueExtension extends AutoValueExtension {
             i++;
         }
         return MethodSpec.methodBuilder("test")
+                .returns(AutoValueUtil.getAutoValueClassClassName(context))
+                .addCode("return ")
                 .addCode(AutoValueUtil.newFinalClassConstructorCall(context, names))
                 .build();
     }
