@@ -10,7 +10,10 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
+import javax.lang.model.util.Types;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -25,15 +28,33 @@ public class ElementUtilTest {
     @Rule public CompilationRule compilationRule = new CompilationRule();
 
     private Elements elements;
+    private Types types;
 
     @Before
     public void setUp() {
         this.elements = compilationRule.getElements();
+        this.types = compilationRule.getTypes();
     }
 
+    private interface MethodTestInterface1<T> {
+        T interface1();
+    }
+
+    private interface MethodTestInterface2<T> {
+        T interface2();
+    }
+
+    private interface MethodTestInterface3<T> {
+        T interface3();
+    }
+
+    private static class Interface3Impl implements MethodTestInterface3<Double> {
+        @Override public Double interface3() { return 0.0; }
+    }
 
     @SuppressWarnings("unused")
-    private static abstract class MethodTestClass {
+    private static abstract class MethodTestClass<T extends String, R extends Float> extends Interface3Impl
+        implements MethodTestInterface1<Integer>, MethodTestInterface2<R> {
         void a() { }
         abstract void b(String b);
         static int c() {
@@ -43,6 +64,7 @@ public class ElementUtilTest {
         static String e(int e) {
             return null;
         }
+        abstract T f();
     }
 
     @Test
@@ -73,6 +95,26 @@ public class ElementUtilTest {
         assertThat(ElementUtil.hasAbstractMethod(elements, element, TypeName.INT, TypeName.get(String.class))).isFalse();
         assertThat(ElementUtil.getStaticMethod(element, TypeName.INT, TypeName.get(String.class))).isNotNull();
         assertThat(ElementUtil.hasStaticMethod(element, TypeName.INT, TypeName.get(String.class))).isTrue();
+
+        ExecutableElement f = getMethodWithName(element, "f");
+        TypeMirror fReturn = ElementUtil.getResolvedReturnType(types, element, f);
+        assertThat(fReturn).isNotNull();
+        assertThat(ClassName.get(fReturn)).isEqualTo(ClassName.get(String.class));
+
+        ExecutableElement iface1 = getMethodWithName(element, "interface1");
+        TypeMirror iface1Return = ElementUtil.getResolvedReturnType(types, element, iface1);
+        assertThat(iface1Return).isNotNull();
+        assertThat(ClassName.get(iface1Return)).isEqualTo(ClassName.get(Integer.class));
+
+        ExecutableElement iface2 = getMethodWithName(element, "interface2");
+        TypeMirror iface2Return = ElementUtil.getResolvedReturnType(types, element, iface2);
+        assertThat(iface2Return).isNotNull();
+        assertThat(ClassName.get(iface2Return)).isEqualTo(ClassName.get(Float.class));
+
+        ExecutableElement iface3 = getMethodWithName(element, "interface3");
+        TypeMirror iface3Return = ElementUtil.getResolvedReturnType(types, element, iface3);
+        assertThat(iface3Return).isNotNull();
+        assertThat(ClassName.get(iface3Return)).isEqualTo(ClassName.get(Double.class));
     }
 
     @SuppressWarnings("unused")
@@ -271,6 +313,22 @@ public class ElementUtilTest {
                 return element;
             }
         }
-        throw new IllegalArgumentException("Element with name '" + name + "' not found");
+        return null;
+    }
+
+    private ExecutableElement getMethodWithName(TypeElement element, String name) {
+        ExecutableElement method = (ExecutableElement) getElementWithName(element.getEnclosedElements(), name);
+        if (method != null) {
+            return method;
+        }
+
+        for (TypeMirror iface : element.getInterfaces()) {
+            method = getMethodWithName((TypeElement) types.asElement(iface), name);
+            if (method != null) {
+                return method;
+            }
+        }
+
+        return getMethodWithName((TypeElement) types.asElement(element.getSuperclass()), name);
     }
 }
